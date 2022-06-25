@@ -12,8 +12,8 @@ import torchvision.datasets as dsets
 import torch.nn.functional as F
 from torch.autograd import grad
 
-from generator import Generator3, Generator5
-from discriminator import Discriminator4
+from generator import Generator3, Generator64
+from discriminator import Discriminator64
 from utils import weights_init
 
 
@@ -138,13 +138,13 @@ if __name__ == '__main__':
     adversarial_loss = torch.nn.BCEWithLogitsLoss()
 
     # Initialize generator
-    generator = Generator5(latent_dim).to(device)
+    generator = Generator64(latent_dim).to(device)
     # generator.apply(weights_init)
     if args.generator_path:
         generator.load_state_dict(torch.load(args.generator_path, map_location=device))
 
     # Initialize discriminator
-    discriminator = Discriminator4().to(device)
+    discriminator = Discriminator64().to(device)
     # discriminator.apply(weights_init)
     if args.discriminator_path:
         discriminator.load_state_dict(torch.load(args.discriminator_path, map_location=device))

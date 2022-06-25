@@ -48,9 +48,9 @@ class Discriminator3(nn.Module):
         return self.features(x).view(-1)
 
 
-class Discriminator4(nn.Module):
+class Discriminator64(nn.Module):
     def __init__(self):
-        super(Discriminator4, self).__init__()
+        super(Discriminator64, self).__init__()
 
         self.features = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=4, stride=2, padding=1),
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     # Initialize generator
-    D = Discriminator4().to(device)
+    D = Discriminator64().to(device)
     z = torch.Tensor(np.random.normal(0, 1, (2, 3 , 64, 64))).to(device)
     output = D(z)
     print('output shape:', output.shape)
