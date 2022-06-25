@@ -61,9 +61,6 @@ class Discriminator4(nn.Module):
             nn.Conv2d(128, 256, 4, 2, 1),
             nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(256, 256, 4, 2, 1),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(256, 512, 4, 2, 1),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, inplace=True),
@@ -85,6 +82,6 @@ if __name__ == '__main__':
 
     # Initialize generator
     D = Discriminator4().to(device)
-    z = torch.Tensor(np.random.normal(0, 1, (2, 3 , 128, 128))).to(device)
+    z = torch.Tensor(np.random.normal(0, 1, (2, 3 , 64, 64))).to(device)
     output = D(z)
     print('output shape:', output.shape)

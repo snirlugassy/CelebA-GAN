@@ -154,6 +154,42 @@ class Generator5(nn.Module):
         return self.features(x)
 
 
+class Generator64(nn.Module):
+    """DCGAN Generator G(z)"""
+
+    def __init__(self, latent_dim=100):
+        super(Generator64, self).__init__()
+
+        # Project and reshape
+        self.linear = nn.Sequential(
+            nn.Linear(latent_dim, 1024 * 4 * 4, bias=False),
+            nn.BatchNorm1d(1024 * 4 * 4),
+            nn.LeakyReLU(inplace=True))
+
+        # Upsample
+        self.features = nn.Sequential(
+            nn.ConvTranspose2d(1024, 512, kernel_size=7, stride=3, padding=1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(512, 512, kernel_size=6, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(512, 256, kernel_size=5, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(256, 128, kernel_size=5, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(128, 128, kernel_size=4, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(128, 3, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Tanh())
+
+    def forward(self, x):
+        x = self.linear(x).view(x.size(0), -1, 4, 4)
+        return self.features(x)
+
 if __name__ == '__main__':
     import torch 
 
@@ -165,7 +201,7 @@ if __name__ == '__main__':
     latent_dim = 100
 
     # Initialize generator
-    generator = Generator5(latent_dim).to(device)
+    generator = Generator64(latent_dim).to(device)
 
     b = 5
 

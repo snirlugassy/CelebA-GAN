@@ -100,7 +100,7 @@ if __name__ == '__main__':
     parser.add_argument("--gp", type=int, default=10, help="Gradient penalty parameter")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     # parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
-    parser.add_argument("--img_size", type=int, default=128, help="size of each image dimension")
+    parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
     parser.add_argument("--sample_interval", type=int, default=500, help="interval betwen image samples")
     parser.add_argument("--print_interval", type=int, default=10, help="print every X batches")
