@@ -162,12 +162,11 @@ class Generator64(nn.Module):
 
         # Project and reshape
         self.linear = nn.Sequential(
-            nn.Linear(latent_dim, 1024 * 4 * 4, bias=False),
-            nn.BatchNorm1d(1024 * 4 * 4),
-            nn.LeakyReLU(inplace=True))
+            nn.Linear(latent_dim, 1024 * 4 * 4),
+            nn.ReLU(inplace=True))
 
         # Upsample
-        self.features = nn.Sequential(
+        self.conv_transpose = nn.Sequential(
             nn.ConvTranspose2d(1024, 512, kernel_size=7, stride=3, padding=1, bias=False),
             nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
@@ -184,11 +183,15 @@ class Generator64(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             nn.ConvTranspose2d(128, 3, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.Tanh())
+            nn.Tanh()
+        )
 
     def forward(self, x):
+        # print(x.shape)
+        # x = self.conv_transpose(x.view(x.size(0), -1, 4, 4))
         x = self.linear(x).view(x.size(0), -1, 4, 4)
-        return self.features(x)
+        x = self.conv_transpose(x)
+        return x
 
 if __name__ == '__main__':
     import torch 

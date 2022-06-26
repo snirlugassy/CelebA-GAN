@@ -48,9 +48,6 @@ def r1loss(inputs, label=None):
     l = -1 if label else 1
     return F.softplus(l*inputs).mean()
 
-
-
-
 def compute_gradient_penalty(D, real_samples, fake_samples):
     """Calculates the gradient penalty loss for WGAN GP"""
     # Random weight term for interpolation between real and fake samples
@@ -93,8 +90,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_epochs", type=int, default=50, help="number of epochs of training")
     parser.add_argument("--batch_size", type=int, default=128, help="size of the batches")
-    parser.add_argument("--lrg", type=float, default=1e-6, help="adam: learning rate of the generator")
-    parser.add_argument("--lrd", type=float, default=1e-6, help="adam: learning rate of the discriminator")
+    parser.add_argument("--lrg", type=float, default=0.0005, help="adam: learning rate of the generator")
+    parser.add_argument("--lrd", type=float, default=0.0005, help="adam: learning rate of the discriminator")
     parser.add_argument("--b1", type=float, default=0.9, help="adam: decay of first order momentum of gradient")
     parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
     parser.add_argument("--gp", type=int, default=10, help="Gradient penalty parameter")
@@ -122,8 +119,8 @@ if __name__ == '__main__':
             [
                 transforms.Resize(args.img_size),
                 transforms.RandomCrop(args.img_size),
-                transforms.ToTensor(), 
-                transforms.Normalize([0.5], [0.5])
+                transforms.ToTensor(),
+                transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0,5])
             ]
         ),
         download=False
