@@ -15,7 +15,7 @@ from torch.autograd import grad
 from generator import Generator3, Generator64
 from discriminator import Discriminator64
 from utils import weights_init
-
+from losses import loss_dcgan_dis, loss_dcgan_gen
 
 class R1(torch.nn.Module):
     """
@@ -192,7 +192,8 @@ if __name__ == '__main__':
             gen_imgs = generator(z)
 
             # Loss measures generator's ability to fool the discriminator
-            g_loss = adversarial_loss(discriminator(gen_imgs).view(valid.shape), valid)
+            # g_loss = adversarial_loss(discriminator(gen_imgs).view(valid.shape), valid)
+            g_loss = loss_dcgan_gen(discriminator(gen_imgs).view(valid.shape))
 
             g_loss.backward()
             optimizer_G.step()
@@ -213,14 +214,18 @@ if __name__ == '__main__':
 
                 # Measure discriminator's ability to classify real from generated samples
                 prediction_real = discriminator(real_imgs).view(valid.shape)
-                real_loss = adversarial_loss(prediction_real, valid)
-                fake_loss = adversarial_loss(discriminator(gen_imgs.detach()).view(fake.shape), fake)
+                prediction_fake = discriminator(gen_imgs.detach()).view(fake.shape)
+                # real_loss = adversarial_loss(prediction_real, valid)
+                # fake_loss = adversarial_loss(prediction_fake, fake)
 
                 # imgs.requires_grad = True
 
                 # gradient_penalty = lambda_gp * compute_gradient_penalty(discriminator, real_imgs.detach(), gen_imgs.detach())
                 # d_loss = (real_loss + fake_loss) / 2 + gradient_penalty
-                d_loss = 0.5 * (real_loss + fake_loss)
+                # d_loss = 0.5 * (real_loss + fake_loss)
+
+                real_loss, fake_loss = loss_dcgan_dis(prediction_fake, prediction_real)
+                d_loss = real_loss + fake_loss
                 d_loss.backward(retain_graph=True)
                 optimizer_D.step()
 
