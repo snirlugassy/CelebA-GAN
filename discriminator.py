@@ -54,17 +54,17 @@ class Discriminator64(nn.Module):
 
         self.features = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=4, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
             nn.Conv2d(64, 128, 4, 2, 1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
+            nn.Conv2d(128, 128, 4, 2, 1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.1, inplace=True),
             nn.Conv2d(128, 256, 4, 2, 1),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(256, 512, 4, 2, 1),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(512, 1, 4, 1)
+            nn.LeakyReLU(0.1, inplace=True),
+            nn.Conv2d(256, 1, 4, 1)
         )
 
     def forward(self, x):

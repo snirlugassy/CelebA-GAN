@@ -167,22 +167,22 @@ class Generator64(nn.Module):
 
         # Upsample
         self.conv_transpose = nn.Sequential(
-            nn.ConvTranspose2d(1024, 512, kernel_size=7, stride=3, padding=1, bias=False),
+            nn.ConvTranspose2d(1024, 512, kernel_size=7, stride=2, padding=0, bias=False),
             nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(512, 512, kernel_size=6, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(512),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(512, 256, kernel_size=5, stride=2, padding=1, bias=False),
+            nn.ConvTranspose2d(512, 256, kernel_size=6, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(256, 128, kernel_size=5, stride=1, padding=1, bias=False),
+            nn.ConvTranspose2d(256, 128, kernel_size=6, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(128, 128, kernel_size=4, stride=1, padding=1, bias=False),
+            nn.ConvTranspose2d(128, 128, kernel_size=6, stride=1, padding=1, bias=False),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(128, 3, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.ConvTranspose2d(128, 128, kernel_size=5, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(128, 3, kernel_size=4, stride=1, padding=1, bias=False),
             nn.Tanh()
         )
 

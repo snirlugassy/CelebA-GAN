@@ -103,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument("--print_interval", type=int, default=10, help="print every X batches")
     parser.add_argument("--generator_path", type=str, default=None, help="path to pre-trained generator weights")
     parser.add_argument("--discriminator_path", type=str, default=None, help="path to pre-trained generator weights")
-    parser.add_argument("--discriminator_hold", type=int, default=2, help="train the discriminator every x batches")
+    parser.add_argument("--discriminator_hold", type=int, default=1, help="train the discriminator every x batches")
     args = parser.parse_args()
     print(args)
 
@@ -204,12 +204,12 @@ if __name__ == '__main__':
             if i % args.discriminator_hold == 0:
                 optimizer_D.zero_grad()
 
-                zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete)))
-                zc = torch.Tensor(np.random.normal(0, 1, (imgs.shape[0], z_continuous)))
-                z = torch.cat([zd, zc], dim=1).to(device)
+                # zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete)))
+                # zc = torch.Tensor(np.random.normal(0, 1, (imgs.shape[0], z_continuous)))
+                # z = torch.cat([zd, zc], dim=1).to(device)
 
                 # Generate a batch of images
-                gen_imgs = generator(z)
+                # gen_imgs = generator(z)
 
                 # Measure discriminator's ability to classify real from generated samples
                 prediction_real = discriminator(real_imgs).view(valid.shape)
@@ -220,7 +220,7 @@ if __name__ == '__main__':
 
                 # gradient_penalty = lambda_gp * compute_gradient_penalty(discriminator, real_imgs.detach(), gen_imgs.detach())
                 # d_loss = (real_loss + fake_loss) / 2 + gradient_penalty
-                d_loss = real_loss + fake_loss
+                d_loss = 0.5 * (real_loss + fake_loss)
                 d_loss.backward(retain_graph=True)
                 optimizer_D.step()
 
