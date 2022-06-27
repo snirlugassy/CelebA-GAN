@@ -12,10 +12,18 @@ import torchvision.datasets as dsets
 import torch.nn.functional as F
 from torch.autograd import grad
 
-from generator import Generator3, Generator64
-from discriminator import Discriminator64
+# from generator import Generator3, Generator64
+# from discriminator import Discriminator64
+
+from dcgan import Generator, Discriminator, weights_init
+
 from utils import weights_init
 from losses import loss_dcgan_dis, loss_dcgan_gen
+
+# import wandb
+# from wandb.pytorch import Wand
+
+# wandb.init(project='DLHW3-CelebA-GAN')
 
 class R1(torch.nn.Module):
     """
@@ -76,6 +84,8 @@ criterion_cycle = torch.nn.L1Loss()
 # Loss weights
 lambda_gp = 10
 
+REAL_LABEL = 1
+FAKE_LABEL = 0
 
 z_discrete = 20
 z_continuous = 80
@@ -90,11 +100,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_epochs", type=int, default=50, help="number of epochs of training")
     parser.add_argument("--batch_size", type=int, default=128, help="size of the batches")
-    parser.add_argument("--lrg", type=float, default=0.0005, help="adam: learning rate of the generator")
-    parser.add_argument("--lrd", type=float, default=0.0005, help="adam: learning rate of the discriminator")
+    parser.add_argument("--lrg", type=float, default=0.0002, help="adam: learning rate of the generator")
+    parser.add_argument("--lrd", type=float, default=0.0002, help="adam: learning rate of the discriminator")
     parser.add_argument("--b1", type=float, default=0.9, help="adam: decay of first order momentum of gradient")
     parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--weight_decay", type=float, default=0, help="adam: L2 regularization coefficient")
     parser.add_argument("--gp", type=int, default=10, help="Gradient penalty parameter")
+    parser.add_argument("--ngf", type=int, default=64, help="Number of generator features")
+    parser.add_argument("--ndf", type=int, default=64, help="Number of discriminator features")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
     # parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
     parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
@@ -132,23 +145,23 @@ if __name__ == '__main__':
     img_shape = tuple(x.shape)
 
     # Loss function
-    adversarial_loss = torch.nn.BCEWithLogitsLoss()
+    adversarial_loss = torch.nn.BCELoss()
 
     # Initialize generator
-    generator = Generator64(latent_dim).to(device)
-    # generator.apply(weights_init)
+    generator = Generator(latent_dim, args.ngf).to(device)
+    generator.apply(weights_init)
     if args.generator_path:
         generator.load_state_dict(torch.load(args.generator_path, map_location=device))
 
     # Initialize discriminator
-    discriminator = Discriminator64().to(device)
-    # discriminator.apply(weights_init)
+    discriminator = Discriminator(args.channels, args.ndf).to(device)
+    discriminator.apply(weights_init)
     if args.discriminator_path:
         discriminator.load_state_dict(torch.load(args.discriminator_path, map_location=device))
 
     # Optimizers
-    optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lrg, betas=(args.b1, args.b2), weight_decay=0.1)
-    optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lrd, betas=(args.b1, args.b2), weight_decay=0.1)
+    optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lrg, betas=(args.b1, args.b2), weight_decay=args.weight_decay)
+    optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lrd, betas=(args.b1, args.b2), weight_decay=args.weight_decay)
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
@@ -171,63 +184,112 @@ if __name__ == '__main__':
 
     for epoch in range(args.n_epochs):
         for i, (imgs, _) in enumerate(train_loader):
-            # Adversarial ground truths
-            valid = Variable(Tensor(imgs.size(0), 1).fill_(1.0), requires_grad=False)
-            fake = Variable(Tensor(imgs.size(0), 1).fill_(0.0), requires_grad=False)
 
-            # Configure input
-            real_imgs = Variable(imgs.type(Tensor))
 
-            # -----------------
-            #  Train Generator
-            # -----------------
+            # Transfer data tensor to GPU/CPU (device)
+            real_data = imgs.to(device)
+            
+            # Get batch size. Can be different from params['nbsize'] for last batch in epoch.
+            b_size = real_data.size(0)
+            
+            # Make accumalated gradients of the discriminator zero.
+            discriminator.zero_grad()
+            # Create labels for the real data. (label=1)
+            label = torch.full((b_size, ), REAL_LABEL, device=device).float()
+            output = discriminator(real_data).view(-1)
+            d_loss_real = adversarial_loss(output, label)
 
-            optimizer_G.zero_grad()
+            d_loss_real.backward()
+            
+            zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete, 1, 1)))
+            zc = torch.Tensor(np.random.normal(0, 1, (imgs.shape[0], z_continuous, 1, 1)))
+            noise = torch.cat([zd, zc], dim=1).to(device)
 
-            zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete)))
-            zc = torch.Tensor(np.random.normal(0, 1, (imgs.shape[0], z_continuous)))
-            z = torch.cat([zd, zc], dim=1).to(device)
+            gen_imgs = generator(noise)
+            
+            label.fill_(FAKE_LABEL  )
+            
+            output = discriminator(gen_imgs.detach()).view(-1)
+            d_loss_fake = adversarial_loss(output, label)
+            
+            d_loss_fake.backward()
 
-            # Generate a batch of images
-            gen_imgs = generator(z)
+            d_loss = d_loss_real + d_loss_fake
+            optimizer_D.step()
+            
+            # Make accumalted gradients of the generator zero.
+            generator.zero_grad()
 
-            # Loss measures generator's ability to fool the discriminator
-            # g_loss = adversarial_loss(discriminator(gen_imgs).view(valid.shape), valid)
-            g_loss = loss_dcgan_gen(discriminator(gen_imgs).view(valid.shape))
+            label.fill_(REAL_LABEL)
+
+            output = discriminator(gen_imgs).view(-1)
+            g_loss = adversarial_loss(output, label)
 
             g_loss.backward()
+
+            D_G_z2 = output.mean().item()
+            
+            # Update generator parameters.
             optimizer_G.step()
 
-            # ---------------------
-            #  Train Discriminator
-            # ---------------------
 
-            if i % args.discriminator_hold == 0:
-                optimizer_D.zero_grad()
+            # # Adversarial ground truths
+            # valid = Variable(Tensor(imgs.size(0), 1).fill_(1.0), requires_grad=False)
+            # fake = Variable(Tensor(imgs.size(0), 1).fill_(0.0), requires_grad=False)
 
-                # zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete)))
-                # zc = torch.Tensor(np.random.normal(0, 1, (imgs.shape[0], z_continuous)))
-                # z = torch.cat([zd, zc], dim=1).to(device)
+            # # Configure input
+            # real_imgs = Variable(imgs.type(Tensor))
 
-                # Generate a batch of images
-                # gen_imgs = generator(z)
+            # # -----------------
+            # #  Train Generator
+            # # -----------------
 
-                # Measure discriminator's ability to classify real from generated samples
-                prediction_real = discriminator(real_imgs).view(valid.shape)
-                prediction_fake = discriminator(gen_imgs.detach()).view(fake.shape)
-                # real_loss = adversarial_loss(prediction_real, valid)
-                # fake_loss = adversarial_loss(prediction_fake, fake)
+            # optimizer_G.zero_grad()
 
-                # imgs.requires_grad = True
+            # zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete)))
+            # zc = torch.Tensor(np.random.normal(0, 1, (imgs.shape[0], z_continuous)))
+            # z = torch.cat([zd, zc], dim=1).to(device)
 
-                # gradient_penalty = lambda_gp * compute_gradient_penalty(discriminator, real_imgs.detach(), gen_imgs.detach())
-                # d_loss = (real_loss + fake_loss) / 2 + gradient_penalty
-                # d_loss = 0.5 * (real_loss + fake_loss)
+            # # Generate a batch of images
+            # gen_imgs = generator(z)
 
-                real_loss, fake_loss = loss_dcgan_dis(prediction_fake, prediction_real)
-                d_loss = real_loss + fake_loss
-                d_loss.backward(retain_graph=True)
-                optimizer_D.step()
+            # # Loss measures generator's ability to fool the discriminator
+            # g_loss = adversarial_loss(discriminator(gen_imgs).view(valid.shape), valid)
+            # # g_loss = loss_dcgan_gen(discriminator(gen_imgs).view(valid.shape))
+
+            # g_loss.backward()
+            # optimizer_G.step()
+
+            # # ---------------------
+            # #  Train Discriminator
+            # # ---------------------
+
+            # if i % args.discriminator_hold == 0:
+            #     optimizer_D.zero_grad()
+
+            #     # zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete)))
+            #     # zc = torch.Tensor(np.random.normal(0, 1, (imgs.shape[0], z_continuous)))
+            #     # z = torch.cat([zd, zc], dim=1).to(device)
+
+            #     # Generate a batch of images
+            #     # gen_imgs = generator(z)
+
+            #     # Measure discriminator's ability to classify real from generated samples
+            #     prediction_real = discriminator(real_imgs).view(valid.shape)
+            #     prediction_fake = discriminator(gen_imgs.detach()).view(fake.shape)
+            #     # real_loss = adversarial_loss(prediction_real, valid)
+            #     # fake_loss = adversarial_loss(prediction_fake, fake)
+
+            #     # imgs.requires_grad = True
+
+            #     # gradient_penalty = lambda_gp * compute_gradient_penalty(discriminator, real_imgs.detach(), gen_imgs.detach())
+            #     # d_loss = (real_loss + fake_loss) / 2 + gradient_penalty
+            #     # d_loss = 0.5 * (real_loss + fake_loss)
+
+            #     real_loss, fake_loss = loss_dcgan_dis(prediction_fake, prediction_real)
+            #     d_loss = real_loss + fake_loss
+            #     d_loss.backward(retain_graph=True)
+            #     optimizer_D.step()
 
             batches_done = epoch * len(train_loader) + i
             if batches_done % args.sample_interval == 0:
