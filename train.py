@@ -100,11 +100,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_epochs", type=int, default=50, help="number of epochs of training")
     parser.add_argument("--batch_size", type=int, default=128, help="size of the batches")
-    parser.add_argument("--lrg", type=float, default=0.0002, help="adam: learning rate of the generator")
-    parser.add_argument("--lrd", type=float, default=0.0002, help="adam: learning rate of the discriminator")
+    parser.add_argument("--lrg", type=float, default=0.00001, help="adam: learning rate of the generator")
+    parser.add_argument("--lrd", type=float, default=0.00001, help="adam: learning rate of the discriminator")
     parser.add_argument("--b1", type=float, default=0.9, help="adam: decay of first order momentum of gradient")
     parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
-    parser.add_argument("--weight_decay", type=float, default=0, help="adam: L2 regularization coefficient")
+    parser.add_argument("--weight_decay", type=float, default=0.1, help="adam: L2 regularization coefficient")
     parser.add_argument("--gp", type=int, default=10, help="Gradient penalty parameter")
     parser.add_argument("--ngf", type=int, default=64, help="Number of generator features")
     parser.add_argument("--ndf", type=int, default=64, help="Number of discriminator features")
@@ -201,8 +201,11 @@ if __name__ == '__main__':
 
             d_loss_real.backward()
             
+            # Random int from [0,10]
             zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete, 1, 1)))
-            zc = torch.Tensor(np.random.normal(0, 1, (imgs.shape[0], z_continuous, 1, 1)))
+            
+            # Uniform random continuous from (-1,1)
+            zc = 2*torch.Tensor(np.random.rand(0, 1, (imgs.shape[0], z_continuous, 1, 1))) - 1
             noise = torch.cat([zd, zc], dim=1).to(device)
 
             gen_imgs = generator(noise)
