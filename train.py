@@ -205,7 +205,7 @@ if __name__ == '__main__':
             zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete, 1, 1)))
             
             # Uniform random continuous from (-1,1)
-            zc = 2*torch.Tensor(np.random.rand(0, 1, (imgs.shape[0], z_continuous, 1, 1))) - 1
+            zc = 2*torch.Tensor(np.random.rand(imgs.shape[0], z_continuous, 1, 1)) - 1
             noise = torch.cat([zd, zc], dim=1).to(device)
 
             gen_imgs = generator(noise)
