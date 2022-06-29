@@ -63,8 +63,7 @@ class Discriminator(nn.Module):
         self.bn2 = nn.BatchNorm2d(ndf*2)
 
         # Input Dimension: (ndf*2) x 16 x 16
-        self.conv3 = nn.Conv2d(ndf*2, ndf*4,
-4, 2, 1, bias=False)
+        self.conv3 = nn.Conv2d(ndf*2, ndf*4, 4, 2, 1, bias=False)
         self.bn3 = nn.BatchNorm2d(ndf*4)
 
         # Input Dimension: (ndf*4) x 8 x 8

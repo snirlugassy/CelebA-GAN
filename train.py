@@ -87,11 +87,6 @@ lambda_gp = 10
 REAL_LABEL = 1
 FAKE_LABEL = 0
 
-z_discrete = 20
-z_continuous = 80
-latent_dim = z_discrete + z_continuous
-
-
 def criterion_cls(logit, target):
     return F.binary_cross_entropy_with_logits(logit, target, size_average=False) / logit.size(0)
 
@@ -100,16 +95,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_epochs", type=int, default=50, help="number of epochs of training")
     parser.add_argument("--batch_size", type=int, default=128, help="size of the batches")
-    parser.add_argument("--lrg", type=float, default=0.00001, help="adam: learning rate of the generator")
-    parser.add_argument("--lrd", type=float, default=0.00001, help="adam: learning rate of the discriminator")
-    parser.add_argument("--b1", type=float, default=0.9, help="adam: decay of first order momentum of gradient")
+    parser.add_argument("--lrg", type=float, default=0.0004, help="adam: learning rate of the generator")
+    parser.add_argument("--lrd", type=float, default=0.0004, help="adam: learning rate of the discriminator")
+    parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first order momentum of gradient")
     parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
     parser.add_argument("--weight_decay", type=float, default=0.1, help="adam: L2 regularization coefficient")
     parser.add_argument("--gp", type=int, default=10, help="Gradient penalty parameter")
     parser.add_argument("--ngf", type=int, default=64, help="Number of generator features")
     parser.add_argument("--ndf", type=int, default=64, help="Number of discriminator features")
     parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
-    # parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+    parser.add_argument("--ddim", type=int, default=16, help="dimensionality of the discrete latent space")
+    parser.add_argument("--cdim", type=int, default=128, help="dimensionality of the continuous latent space")
     parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
     parser.add_argument("--sample_interval", type=int, default=500, help="interval betwen image samples")
@@ -130,10 +126,10 @@ if __name__ == '__main__':
         split = 'train',
         transform=transforms.Compose(
             [
-                transforms.Resize(args.img_size),
-                transforms.RandomCrop(args.img_size),
+                transforms.Resize(64),
+                transforms.CenterCrop(64),
                 transforms.ToTensor(),
-                transforms.Normalize([0.5], [0.5])
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ]
         ),
         download=False
@@ -146,6 +142,8 @@ if __name__ == '__main__':
 
     # Loss function
     adversarial_loss = torch.nn.BCELoss()
+
+    latent_dim = args.ddim + args.cdim
 
     # Initialize generator
     generator = Generator(latent_dim, args.ngf).to(device)
@@ -202,10 +200,10 @@ if __name__ == '__main__':
             d_loss_real.backward()
             
             # Random int from [0,10]
-            zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], z_discrete, 1, 1)))
+            zd = torch.Tensor(np.random.randint(0, 10, (imgs.shape[0], args.ddim, 1, 1)))
             
-            # Uniform random continuous from (-1,1)
-            zc = 2*torch.Tensor(np.random.rand(imgs.shape[0], z_continuous, 1, 1)) - 1
+            # Uniform random continuous from (-2,2)
+            zc = 4*torch.Tensor(np.random.rand(imgs.shape[0], args.cdim, 1, 1)) - 2
             noise = torch.cat([zd, zc], dim=1).to(device)
 
             gen_imgs = generator(noise)
