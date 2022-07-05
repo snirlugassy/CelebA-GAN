@@ -10,20 +10,10 @@ from torchvision.utils import save_image, make_grid
 from torch.autograd import Variable
 import torchvision.datasets as dsets
 import torch.nn.functional as F
-from torch.autograd import grad
-
-# from generator import Generator3, Generator64
-# from discriminator import Discriminator64
 
 from dcgan import Generator, Discriminator, weights_init
 
 from utils import weights_init
-from losses import loss_dcgan_dis, loss_dcgan_gen
-
-# import wandb
-# from wandb.pytorch import Wand
-
-# wandb.init(project='DLHW3-CelebA-GAN')
 
 class R1(torch.nn.Module):
     """

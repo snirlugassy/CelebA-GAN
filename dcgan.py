@@ -67,8 +67,7 @@ class Discriminator(nn.Module):
         self.bn3 = nn.BatchNorm2d(ndf*4)
 
         # Input Dimension: (ndf*4) x 8 x 8
-        self.conv4 = nn.Conv2d(ndf*4, ndf*8,
-            4, 2, 1, bias=False)
+        self.conv4 = nn.Conv2d(ndf*4, ndf*8,4, 2, 1, bias=False)
         self.bn4 = nn.BatchNorm2d(ndf*8)
 
         # Input Dimension: (ndf*8) x 4 x 4
@@ -79,7 +78,6 @@ class Discriminator(nn.Module):
         x = F.leaky_relu(self.bn2(self.conv2(x)), 0.2, True)
         x = F.leaky_relu(self.bn3(self.conv3(x)), 0.2, True)
         x = F.leaky_relu(self.bn4(self.conv4(x)), 0.2, True)
-
         x = F.sigmoid(self.conv5(x))
 
         return x
